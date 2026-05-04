@@ -1,0 +1,35 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - dev
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Deploy to Development (dev)
+        if: github.ref == 'refs/heads/dev'
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST_DEV }}
+          username: ${{ secrets.SSH_USERNAME_DEV }}
+          password: ${{ secrets.SSH_PASSWORD_DEV }}
+          port: 22
+          script: |
+            # → keluar kalau ada error, treat unset vars as error, pipefail
+            set -euo pipefail
+            cd /home/staging-admin-beranicerdas/htdocs/staging-admin.beranicerdas.sekolahkukeren.id
+
+            # pastikan kita di branch yg benar
+            git fetch origin dev
+            git config pull.rebase false
+
+            # kalau `git pull` gagal, script langsung abort
+            git pull origin dev
+
+            # install/build, abort kalau error
+            npm install
+            npm run build
