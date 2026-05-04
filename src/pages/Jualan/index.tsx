@@ -69,7 +69,7 @@ const JualanApp: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-24 md:pb-8">
+        <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-500 overflow-hidden">
             {/* Header */}
             <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 px-4 py-4 md:px-8">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -109,26 +109,34 @@ const JualanApp: React.FC = () => {
             </header>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 py-6 md:px-8">
-                {activeTab === 'sale' && (
-                    loading ? <SaleSkeleton /> : <SaleSection products={products} transactions={transactions} onTransactionSuccess={fetchInitialData} showToast={showToast} />
-                )}
-                {activeTab === 'products' && (
-                    loading ? <ProductSkeleton /> : <ProductSection products={products} onUpdate={fetchInitialData} showToast={showToast} />
-                )}
-                {activeTab === 'history' && (
-                    loading ? <HistorySkeleton /> : <HistorySection transactions={transactions} onUpdate={fetchInitialData} showToast={showToast} />
-                )}
-                {activeTab === 'recap' && (
-                    loading ? <RecapSkeleton /> : <RecapSection recap={recap} />
-                )}
+            <main className="flex-1 overflow-hidden">
+                <div className="max-w-7xl mx-auto px-4 py-6 md:px-8 h-full">
+                    {activeTab === 'sale' && (
+                        loading ? <SaleSkeleton /> : <SaleSection products={products} transactions={transactions} onTransactionSuccess={fetchInitialData} showToast={showToast} />
+                    )}
+                    {activeTab === 'products' && (
+                        <div className="h-full overflow-y-auto pr-2 custom-scrollbar">
+                            {loading ? <ProductSkeleton /> : <ProductSection products={products} onUpdate={fetchInitialData} showToast={showToast} />}
+                        </div>
+                    )}
+                    {activeTab === 'history' && (
+                        <div className="h-full overflow-y-auto pr-2 custom-scrollbar">
+                            {loading ? <HistorySkeleton /> : <HistorySection transactions={transactions} onUpdate={fetchInitialData} showToast={showToast} />}
+                        </div>
+                    )}
+                    {activeTab === 'recap' && (
+                        <div className="h-full overflow-y-auto pr-2 custom-scrollbar">
+                            {loading ? <RecapSkeleton /> : <RecapSection recap={recap} />}
+                        </div>
+                    )}
+                </div>
             </main>
 
             {/* Mobile Navigation */}
             <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 px-6 py-3">
                 <div className="flex items-center justify-between">
                     {[
-                        { id: 'sale', icon: ShoppingCart, label: 'Jual' },
+                        { id: 'sale', icon: ShoppingCart, label: 'Kasir' },
                         { id: 'products', icon: Package, label: 'Produk' },
                         { id: 'history', icon: History, label: 'Riwayat' },
                         { id: 'recap', icon: LayoutDashboard, label: 'Rekap' },
@@ -137,8 +145,8 @@ const JualanApp: React.FC = () => {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
                             className={cn(
-                                "flex flex-col items-center gap-1 transition-colors duration-200",
-                                activeTab === tab.id ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"
+                                "flex flex-col items-center gap-1 transition-all duration-300",
+                                activeTab === tab.id ? "text-indigo-600 dark:text-indigo-400 scale-110" : "text-slate-400"
                             )}
                         >
                             <tab.icon className="w-5 h-5" />
@@ -150,7 +158,7 @@ const JualanApp: React.FC = () => {
 
             {/* Toast Notification */}
             {toast && (
-                <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-top-4 duration-300">
                     <div className={cn(
                         "px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 backdrop-blur-md border",
                         toast.type === 'success' ? "bg-emerald-500/90 text-white border-emerald-400" : "bg-red-500/90 text-white border-red-400"
@@ -164,9 +172,189 @@ const JualanApp: React.FC = () => {
     );
 };
 
-// Sub-components will be defined here or in separate files.
-// For brevity in this thought, I'll start defining them inside index.tsx or split if it gets too big.
-// I'll create the sub-components now.
+const CartContent: React.FC<{
+    cart: any[],
+    buyerName: string,
+    setBuyerName: (v: string) => void,
+    paymentStatus: 'cash' | 'qris' | 'utang',
+    setPaymentStatus: (v: 'cash' | 'qris' | 'utang') => void,
+    isPaidFull: boolean,
+    setIsPaidFull: (v: boolean) => void,
+    amountPaid: number,
+    setAmountPaid: (v: number) => void,
+    remaining: number,
+    total: number,
+    updateQuantity: (id: number, delta: number) => void,
+    removeFromCart: (id: number) => void,
+    handleSubmit: () => void,
+    setShowMobileCart: (v: boolean) => void,
+    showBuyerList: boolean,
+    setShowBuyerList: (v: boolean) => void,
+    filteredBuyers: string[],
+    uniqueBuyers: string[]
+}> = ({
+    cart, buyerName, setBuyerName, paymentStatus, setPaymentStatus, isPaidFull, setIsPaidFull,
+    amountPaid, setAmountPaid, remaining, total, updateQuantity, removeFromCart, handleSubmit,
+    setShowMobileCart, showBuyerList, setShowBuyerList, filteredBuyers, uniqueBuyers
+}) => (
+    <div className="flex flex-col h-full bg-white dark:bg-slate-900 rounded-3xl md:rounded-none overflow-hidden">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-indigo-500" />
+                Keranjang Belanja
+            </h2>
+            <button onClick={() => setShowMobileCart(false)} className="md:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
+                <ChevronRight className="w-6 h-6 rotate-90" />
+            </button>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+            {cart.length === 0 ? (
+                <div className="text-center py-12">
+                    <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <ShoppingCart className="w-10 h-10 text-slate-300" />
+                    </div>
+                    <p className="text-slate-500 font-medium">Keranjang masih kosong</p>
+                </div>
+            ) : (
+                cart.map(item => (
+                    <div key={item.id} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/30 p-3 rounded-2xl border border-transparent hover:border-indigo-100 dark:hover:border-indigo-900/30 transition-all">
+                        <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-bold truncate">{item.name}</h4>
+                            <p className="text-xs text-indigo-500 font-bold">Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(item.price)}</p>
+                        </div>
+                        <div className="flex items-center bg-white dark:bg-slate-800 rounded-xl p-1 shadow-sm border border-slate-100 dark:border-slate-700">
+                            <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors font-bold">-</button>
+                            <span className="w-8 text-center text-xs font-black">{item.quantity}</span>
+                            <button onClick={() => updateQuantity(item.id, 1)} className="w-7 h-7 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors font-bold">+</button>
+                        </div>
+                        <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all">
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    </div>
+                ))
+            )}
+        </div>
+
+        <div className="p-6 bg-slate-50 dark:bg-slate-800/50 space-y-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="relative">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Nama Pembeli</label>
+                <div className="relative group">
+                    <input
+                        type="text"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                        placeholder="Masukkan atau cari nama..."
+                        value={buyerName}
+                        onChange={(e) => {
+                            setBuyerName(e.target.value);
+                            setShowBuyerList(true);
+                        }}
+                        onFocus={() => setShowBuyerList(true)}
+                    />
+                    {showBuyerList && (buyerName || filteredBuyers.length > 0) && (
+                        <div className="absolute bottom-full left-0 w-full mb-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-[70] max-h-40 overflow-y-auto custom-scrollbar">
+                            {filteredBuyers.map((b: any) => (
+                                <div
+                                    key={b}
+                                    className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold border-b border-slate-100 dark:border-slate-700 transition-colors"
+                                    onClick={() => {
+                                        setBuyerName(b);
+                                        setShowBuyerList(false);
+                                    }}
+                                >
+                                    {b}
+                                </div>
+                            ))}
+                            {buyerName && !uniqueBuyers.includes(buyerName) && (
+                                <div
+                                    className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-indigo-500 border-b border-slate-100 dark:border-slate-700 transition-colors"
+                                    onClick={() => setShowBuyerList(false)}
+                                >
+                                    + Gunakan Nama Baru: "{buyerName}"
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Metode Pembayaran</label>
+                <div className="grid grid-cols-3 gap-2">
+                    {[
+                        { id: 'cash', label: 'Cash', icon: DollarSign },
+                        { id: 'qris', label: 'QRIS', icon: CreditCard },
+                        { id: 'utang', label: 'Utang', icon: AlertCircle },
+                    ].map(m => (
+                        <button
+                            key={m.id}
+                            onClick={() => setPaymentStatus(m.id as any)}
+                            className={cn(
+                                "flex flex-col items-center gap-1.5 py-3 border rounded-2xl transition-all duration-200",
+                                paymentStatus === m.id
+                                    ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/30 -translate-y-0.5"
+                                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:border-indigo-200 dark:hover:border-indigo-900"
+                            )}
+                        >
+                            <m.icon className="w-4 h-4" />
+                            <span className="text-[10px] font-black uppercase">{m.label}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {paymentStatus === 'utang' && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <input
+                            type="checkbox"
+                            id="paidFull"
+                            checked={isPaidFull}
+                            onChange={(e) => setIsPaidFull(e.target.checked)}
+                            className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <label htmlFor="paidFull" className="text-sm font-bold text-slate-700 dark:text-slate-300">Bayar Lunas Langsung?</label>
+                    </div>
+                    {!isPaidFull && (
+                        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Jumlah Dibayar Sekarang</label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">Rp</span>
+                                <input
+                                    type="number"
+                                    className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-none rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-black text-lg"
+                                    value={amountPaid}
+                                    onChange={(e) => setAmountPaid(Number(e.target.value))}
+                                />
+                            </div>
+                            <div className="flex justify-between items-center text-xs">
+                                <span className="text-slate-500 font-medium">Sisa Hutang:</span>
+                                <span className="text-red-500 font-black">Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(remaining)}</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-700 mt-2">
+                <div className="flex justify-between items-center mb-6">
+                    <span className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Total Tagihan</span>
+                    <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
+                        Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(total)}
+                    </span>
+                </div>
+                <button
+                    onClick={handleSubmit}
+                    disabled={cart.length === 0}
+                    className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 disabled:shadow-none text-white rounded-2xl font-black text-lg shadow-xl shadow-indigo-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                >
+                    <ShoppingCart className="w-6 h-6" />
+                    Bayar Sekarang
+                </button>
+            </div>
+        </div>
+    </div>
+);
 
 const SaleSection: React.FC<{ products: any[], transactions: any[], onTransactionSuccess: () => void, showToast: (m: string, t?: any) => void }> = ({ products, transactions, onTransactionSuccess, showToast }) => {
     const [cart, setCart] = useState<any[]>([]);
@@ -246,170 +434,10 @@ const SaleSection: React.FC<{ products: any[], transactions: any[], onTransactio
         }
     };
 
-    const CartContent = () => (
-        <div className="flex flex-col h-full bg-white dark:bg-slate-900 rounded-3xl md:rounded-none overflow-hidden">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                    <ShoppingCart className="w-5 h-5 text-indigo-500" />
-                    Keranjang Belanja
-                </h2>
-                <button onClick={() => setShowMobileCart(false)} className="md:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
-                    <ChevronRight className="w-6 h-6 rotate-90" />
-                </button>
-            </div>
-
-            <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-                {cart.length === 0 ? (
-                    <div className="text-center py-12">
-                        <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <ShoppingCart className="w-10 h-10 text-slate-300" />
-                        </div>
-                        <p className="text-slate-500 font-medium">Keranjang masih kosong</p>
-                    </div>
-                ) : (
-                    cart.map(item => (
-                        <div key={item.id} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/30 p-3 rounded-2xl border border-transparent hover:border-indigo-100 dark:hover:border-indigo-900/30 transition-all">
-                            <div className="flex-1 min-w-0">
-                                <h4 className="text-sm font-bold truncate">{item.name}</h4>
-                                <p className="text-xs text-indigo-500 font-bold">Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(item.price)}</p>
-                            </div>
-                            <div className="flex items-center bg-white dark:bg-slate-800 rounded-xl p-1 shadow-sm border border-slate-100 dark:border-slate-700">
-                                <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors font-bold">-</button>
-                                <span className="w-8 text-center text-xs font-black">{item.quantity}</span>
-                                <button onClick={() => updateQuantity(item.id, 1)} className="w-7 h-7 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors font-bold">+</button>
-                            </div>
-                            <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all">
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        </div>
-                    ))
-                )}
-            </div>
-
-            <div className="p-6 bg-slate-50 dark:bg-slate-800/50 space-y-4 border-t border-slate-100 dark:border-slate-800">
-                <div className="relative">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Nama Pembeli</label>
-                    <div className="relative group">
-                        <input
-                            type="text"
-                            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
-                            placeholder="Masukkan atau cari nama..."
-                            value={buyerName}
-                            onChange={(e) => {
-                                setBuyerName(e.target.value);
-                                setShowBuyerList(true);
-                            }}
-                            onFocus={() => setShowBuyerList(true)}
-                        />
-                        {showBuyerList && (buyerName || filteredBuyers.length > 0) && (
-                            <div className="absolute bottom-full left-0 w-full mb-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-[70] max-h-40 overflow-y-auto custom-scrollbar">
-                                {filteredBuyers.map((b: any) => (
-                                    <div
-                                        key={b}
-                                        className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold border-b border-slate-100 dark:border-slate-700 transition-colors"
-                                        onClick={() => {
-                                            setBuyerName(b);
-                                            setShowBuyerList(false);
-                                        }}
-                                    >
-                                        {b}
-                                    </div>
-                                ))}
-                                {buyerName && !uniqueBuyers.includes(buyerName) && (
-                                    <div
-                                        className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-indigo-500 border-b border-slate-100 dark:border-slate-700 transition-colors"
-                                        onClick={() => setShowBuyerList(false)}
-                                    >
-                                        + Gunakan Nama Baru: "{buyerName}"
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Metode Pembayaran</label>
-                    <div className="grid grid-cols-3 gap-2">
-                        {[
-                            { id: 'cash', label: 'Cash', icon: DollarSign },
-                            { id: 'qris', label: 'QRIS', icon: CreditCard },
-                            { id: 'utang', label: 'Utang', icon: AlertCircle },
-                        ].map(m => (
-                            <button
-                                key={m.id}
-                                onClick={() => setPaymentStatus(m.id as any)}
-                                className={cn(
-                                    "flex flex-col items-center gap-1.5 py-3 border rounded-2xl transition-all duration-200",
-                                    paymentStatus === m.id
-                                        ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/30 -translate-y-0.5"
-                                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:border-indigo-200 dark:hover:border-indigo-900"
-                                )}
-                            >
-                                <m.icon className="w-4 h-4" />
-                                <span className="text-[10px] font-black uppercase">{m.label}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {paymentStatus === 'utang' && (
-                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
-                            <input
-                                type="checkbox"
-                                id="paidFull"
-                                checked={isPaidFull}
-                                onChange={(e) => setIsPaidFull(e.target.checked)}
-                                className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                            />
-                            <label htmlFor="paidFull" className="text-sm font-bold text-slate-700 dark:text-slate-300">Bayar Lunas Langsung?</label>
-                        </div>
-                        {!isPaidFull && (
-                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Jumlah Dibayar Sekarang</label>
-                                <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">Rp</span>
-                                    <input
-                                        type="number"
-                                        className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-none rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-black text-lg"
-                                        value={amountPaid}
-                                        onChange={(e) => setAmountPaid(Number(e.target.value))}
-                                    />
-                                </div>
-                                <div className="flex justify-between items-center text-xs">
-                                    <span className="text-slate-500 font-medium">Sisa Hutang:</span>
-                                    <span className="text-red-500 font-black">Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(remaining)}</span>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                <div className="pt-4 border-t border-slate-200 dark:border-slate-700 mt-2">
-                    <div className="flex justify-between items-center mb-6">
-                        <span className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Total Tagihan</span>
-                        <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
-                            Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(total)}
-                        </span>
-                    </div>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={cart.length === 0}
-                        className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 disabled:shadow-none text-white rounded-2xl font-black text-lg shadow-xl shadow-indigo-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
-                    >
-                        <ShoppingCart className="w-6 h-6" />
-                        Bayar Sekarang
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-                <div className="relative">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
+            <div className="lg:col-span-2 flex flex-col min-h-0">
+                <div className="relative mb-6">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                     <input
                         type="text"
@@ -420,44 +448,64 @@ const SaleSection: React.FC<{ products: any[], transactions: any[], onTransactio
                     />
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    {filteredProducts.map(product => (
-                        <div
-                            key={product.id}
-                            onClick={() => addToCart(product)}
-                            className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] overflow-hidden cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-400 transition-all hover:shadow-2xl hover:-translate-y-1 active:scale-95"
-                        >
-                            <div className="aspect-square bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
-                                {product.image ? (
-                                    <img
-                                        src={product.image.startsWith('http') ? product.image : `${import.meta.env.VITE_API_SERVICE_KEPEGAWAIAN}/../storage/${product.image}`}
-                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
-                                        <ImageIcon className="w-12 h-12" />
+                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pb-20">
+                        {filteredProducts.map(product => (
+                            <div
+                                key={product.id}
+                                onClick={() => addToCart(product)}
+                                className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] overflow-hidden cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-400 transition-all hover:shadow-2xl hover:-translate-y-1 active:scale-95"
+                            >
+                                <div className="aspect-square bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
+                                    {product.image ? (
+                                        <img
+                                            src={product.image.startsWith('http') ? product.image : `${import.meta.env.VITE_API_SERVICE_KEPEGAWAIAN}/../storage/${product.image}`}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
+                                            <ImageIcon className="w-12 h-12" />
+                                        </div>
+                                    )}
+                                    <div className="absolute top-3 right-3 px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-full text-[10px] text-slate-700 dark:text-slate-200 font-black uppercase tracking-widest shadow-sm">
+                                        {product.owner}
                                     </div>
-                                )}
-                                <div className="absolute top-3 right-3 px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-full text-[10px] text-slate-700 dark:text-slate-200 font-black uppercase tracking-widest shadow-sm">
-                                    {product.owner}
+                                </div>
+                                <div className="p-4">
+                                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate mb-1">{product.name}</h3>
+                                    <p className="text-indigo-600 dark:text-indigo-400 font-black text-base">
+                                        Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(product.price)}
+                                    </p>
                                 </div>
                             </div>
-                            <div className="p-4">
-                                <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate mb-1">{product.name}</h3>
-                                <p className="text-indigo-600 dark:text-indigo-400 font-black text-base">
-                                    Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(product.price)}
-                                </p>
-                            </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </div>
 
             {/* Desktop Cart */}
-            <div className="hidden lg:block">
-                <div className="sticky top-24">
-                    <CartContent />
-                </div>
+            <div className="hidden lg:block h-full">
+                <CartContent 
+                    cart={cart}
+                    buyerName={buyerName}
+                    setBuyerName={setBuyerName}
+                    paymentStatus={paymentStatus}
+                    setPaymentStatus={setPaymentStatus}
+                    isPaidFull={isPaidFull}
+                    setIsPaidFull={setIsPaidFull}
+                    amountPaid={amountPaid}
+                    setAmountPaid={setAmountPaid}
+                    remaining={remaining}
+                    total={total}
+                    updateQuantity={updateQuantity}
+                    removeFromCart={removeFromCart}
+                    handleSubmit={handleSubmit}
+                    setShowMobileCart={setShowMobileCart}
+                    showBuyerList={showBuyerList}
+                    setShowBuyerList={setShowBuyerList}
+                    filteredBuyers={filteredBuyers}
+                    uniqueBuyers={uniqueBuyers}
+                />
             </div>
 
             {/* Mobile Cart Toggle FAB */}
@@ -475,11 +523,31 @@ const SaleSection: React.FC<{ products: any[], transactions: any[], onTransactio
                 </div>
             </button>
 
-            {/* Mobile Cart Drawer/Modal */}
+            {/* Mobile Cart Drawer/Modal - Absolute Top as requested */}
             {showMobileCart && (
-                <div className="lg:hidden fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="w-full max-h-[90vh] animate-in slide-in-from-bottom-full duration-500">
-                        <CartContent />
+                <div className="lg:hidden fixed inset-0 z-[60] flex items-start justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300 p-4">
+                    <div className="w-full max-h-[85vh] animate-in slide-in-from-top-full duration-500 shadow-2xl">
+                        <CartContent 
+                            cart={cart}
+                            buyerName={buyerName}
+                            setBuyerName={setBuyerName}
+                            paymentStatus={paymentStatus}
+                            setPaymentStatus={setPaymentStatus}
+                            isPaidFull={isPaidFull}
+                            setIsPaidFull={setIsPaidFull}
+                            amountPaid={amountPaid}
+                            setAmountPaid={setAmountPaid}
+                            remaining={remaining}
+                            total={total}
+                            updateQuantity={updateQuantity}
+                            removeFromCart={removeFromCart}
+                            handleSubmit={handleSubmit}
+                            setShowMobileCart={setShowMobileCart}
+                            showBuyerList={showBuyerList}
+                            setShowBuyerList={setShowBuyerList}
+                            filteredBuyers={filteredBuyers}
+                            uniqueBuyers={uniqueBuyers}
+                        />
                     </div>
                 </div>
             )}
