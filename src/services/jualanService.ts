@@ -35,6 +35,11 @@ export const updateTransactionStatus = async (id: number, data: any) => {
     return res;
 };
 
+export const deleteTransaction = async (id: number) => {
+    const res: any = await api_kepegawaian.delete(`/jualan/transactions/${id}`);
+    return res;
+};
+
 export const getRecap = async (month?: number, year?: number) => {
     const res: any = await api_kepegawaian.get('/jualan/recap', { params: { month, year } });
     return res;
