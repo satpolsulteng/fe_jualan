@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     LayoutDashboard,
     Package,
@@ -7,18 +7,18 @@ import {
     Plus,
     Search,
     ChevronRight,
-    ArrowUpRight,
     User,
     DollarSign,
     CreditCard,
     AlertCircle,
-    Calendar,
     Image as ImageIcon,
     Trash2,
     Edit2,
-    Check
+    Check,
+    Users,
+    TrendingUp
 } from 'lucide-react';
-import { getProducts, getTransactions, getRecap, createProduct, createTransaction, updateTransactionStatus, updateProduct, deleteTransaction, deleteProduct } from '@/services/jualanService';
+import { getProducts, getTransactions, getRecap, createProduct, createTransaction, updateTransactionStatus, updateTransaction, updateProduct, deleteTransaction, deleteProduct } from '@/services/jualanService';
 import dayjs from 'dayjs';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -111,7 +111,7 @@ const JualanApp: React.FC = () => {
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 py-6 md:px-8">
                 {activeTab === 'sale' && (
-                    loading ? <SaleSkeleton /> : <SaleSection products={products} onTransactionSuccess={fetchInitialData} showToast={showToast} />
+                    loading ? <SaleSkeleton /> : <SaleSection products={products} transactions={transactions} onTransactionSuccess={fetchInitialData} showToast={showToast} />
                 )}
                 {activeTab === 'products' && (
                     loading ? <ProductSkeleton /> : <ProductSection products={products} onUpdate={fetchInitialData} showToast={showToast} />
@@ -168,7 +168,7 @@ const JualanApp: React.FC = () => {
 // For brevity in this thought, I'll start defining them inside index.tsx or split if it gets too big.
 // I'll create the sub-components now.
 
-const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void, showToast: (m: string, t?: any) => void }> = ({ products, onTransactionSuccess, showToast }) => {
+const SaleSection: React.FC<{ products: any[], transactions: any[], onTransactionSuccess: () => void, showToast: (m: string, t?: any) => void }> = ({ products, transactions, onTransactionSuccess, showToast }) => {
     const [cart, setCart] = useState<any[]>([]);
     const [buyerName, setBuyerName] = useState('');
     const [paymentStatus, setPaymentStatus] = useState<'cash' | 'qris' | 'utang'>('cash');
@@ -176,6 +176,16 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void,
     const [amountPaid, setAmountPaid] = useState<number>(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [showMobileCart, setShowMobileCart] = useState(false);
+    const [showBuyerList, setShowBuyerList] = useState(false);
+
+    const uniqueBuyers = useMemo(() => {
+        return Array.from(new Set(transactions.map((t: any) => t.buyer_name))).filter(b => b);
+    }, [transactions]);
+
+    const filteredBuyers = useMemo(() => {
+        if (!buyerName) return [];
+        return uniqueBuyers.filter((b: any) => b.toLowerCase().includes(buyerName.toLowerCase()));
+    }, [buyerName, uniqueBuyers]);
 
     const filteredProducts = products.filter(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -220,6 +230,8 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void,
                 remaining_balance: paymentStatus === 'utang' ? remaining : 0,
                 items: cart.map(item => ({
                     product_id: item.id,
+                    product_name: item.name,
+                    product_owner: item.owner,
                     quantity: item.quantity,
                     price_at_sale: item.price
                 }))
@@ -236,7 +248,7 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void,
 
     const CartContent = () => (
         <div className="flex flex-col h-full bg-white dark:bg-slate-900 rounded-3xl md:rounded-none overflow-hidden">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
                 <h2 className="text-lg font-bold flex items-center gap-2">
                     <ShoppingCart className="w-5 h-5 text-indigo-500" />
                     Keranjang Belanja
@@ -246,7 +258,7 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void,
                 </button>
             </div>
 
-            <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 custom-scrollbar">
                 {cart.length === 0 ? (
                     <div className="text-center py-12">
                         <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -259,7 +271,7 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void,
                         <div key={item.id} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/30 p-3 rounded-2xl border border-transparent hover:border-indigo-100 dark:hover:border-indigo-900/30 transition-all">
                             <div className="flex-1 min-w-0">
                                 <h4 className="text-sm font-bold truncate">{item.name}</h4>
-                                <p className="text-xs text-indigo-500 font-bold">Rp {new Intl.NumberFormat('id-ID').format(item.price)}</p>
+                                <p className="text-xs text-indigo-500 font-bold">Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(item.price)}</p>
                             </div>
                             <div className="flex items-center bg-white dark:bg-slate-800 rounded-xl p-1 shadow-sm border border-slate-100 dark:border-slate-700">
                                 <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors font-bold">-</button>
@@ -275,15 +287,45 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void,
             </div>
 
             <div className="p-6 bg-slate-50 dark:bg-slate-800/50 space-y-4 border-t border-slate-100 dark:border-slate-800">
-                <div>
+                <div className="relative">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Nama Pembeli</label>
-                    <input
-                        type="text"
-                        className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
-                        placeholder="Masukkan nama pelanggan..."
-                        value={buyerName}
-                        onChange={(e) => setBuyerName(e.target.value)}
-                    />
+                    <div className="relative group">
+                        <input
+                            type="text"
+                            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                            placeholder="Masukkan atau cari nama..."
+                            value={buyerName}
+                            onChange={(e) => {
+                                setBuyerName(e.target.value);
+                                setShowBuyerList(true);
+                            }}
+                            onFocus={() => setShowBuyerList(true)}
+                        />
+                        {showBuyerList && (buyerName || filteredBuyers.length > 0) && (
+                            <div className="absolute bottom-full left-0 w-full mb-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-[70] max-h-40 overflow-y-auto custom-scrollbar">
+                                {filteredBuyers.map((b: any) => (
+                                    <div
+                                        key={b}
+                                        className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold border-b border-slate-100 dark:border-slate-700 transition-colors"
+                                        onClick={() => {
+                                            setBuyerName(b);
+                                            setShowBuyerList(false);
+                                        }}
+                                    >
+                                        {b}
+                                    </div>
+                                ))}
+                                {buyerName && !uniqueBuyers.includes(buyerName) && (
+                                    <div
+                                        className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-bold text-indigo-500 border-b border-slate-100 dark:border-slate-700 transition-colors"
+                                        onClick={() => setShowBuyerList(false)}
+                                    >
+                                        + Gunakan Nama Baru: "{buyerName}"
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div>
@@ -337,7 +379,7 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void,
                                 </div>
                                 <div className="flex justify-between items-center text-xs">
                                     <span className="text-slate-500 font-medium">Sisa Hutang:</span>
-                                    <span className="text-red-500 font-black">Rp {new Intl.NumberFormat('id-ID').format(remaining)}</span>
+                                    <span className="text-red-500 font-black">Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(remaining)}</span>
                                 </div>
                             </div>
                         )}
@@ -348,7 +390,7 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void,
                     <div className="flex justify-between items-center mb-6">
                         <span className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Total Tagihan</span>
                         <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
-                            Rp {new Intl.NumberFormat('id-ID').format(total)}
+                            Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(total)}
                         </span>
                     </div>
                     <button
@@ -403,7 +445,7 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void,
                             <div className="p-4">
                                 <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate mb-1">{product.name}</h3>
                                 <p className="text-indigo-600 dark:text-indigo-400 font-black text-base">
-                                    Rp {new Intl.NumberFormat('id-ID').format(product.price)}
+                                    Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(product.price)}
                                 </p>
                             </div>
                         </div>
@@ -501,7 +543,6 @@ const ProductSection: React.FC<{ products: any[], onUpdate: () => void, showToas
             showToast('Gagal menghapus produk', 'error');
         }
     };
-
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -621,6 +662,8 @@ const ProductSection: React.FC<{ products: any[], onUpdate: () => void, showToas
 
 const HistorySection: React.FC<{ transactions: any[], onUpdate: () => void, showToast: (m: string, t?: any) => void }> = ({ transactions, onUpdate, showToast }) => {
     const [selectedTx, setSelectedTx] = useState<any>(null);
+    const [editingTx, setEditingTx] = useState<any>(null);
+    const [editFormData, setEditFormData] = useState({ buyer_name: '', payment_status: '', is_paid_full: false, remaining_balance: 0 });
 
     const handleStatusUpdate = async (tx: any, newStatus: string, paidFull: boolean) => {
         try {
@@ -633,6 +676,17 @@ const HistorySection: React.FC<{ transactions: any[], onUpdate: () => void, show
             showToast('Status Pembayaran Diperbarui');
         } catch (error) {
             showToast('Gagal memperbarui status', 'error');
+        }
+    };
+
+    const handleEditSave = async () => {
+        try {
+            await updateTransaction(editingTx.id, editFormData);
+            setEditingTx(null);
+            onUpdate();
+            showToast('Transaksi berhasil diperbarui');
+        } catch (error) {
+            showToast('Gagal memperbarui transaksi', 'error');
         }
     };
 
@@ -686,7 +740,7 @@ const HistorySection: React.FC<{ transactions: any[], onUpdate: () => void, show
                                 <div className="flex flex-wrap items-center gap-8 ml-auto">
                                     <div className="text-right">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Total Bayar</p>
-                                        <p className="font-black text-xl text-slate-900 dark:text-slate-50">Rp {new Intl.NumberFormat('id-ID').format(tx.total_amount)}</p>
+                                        <p className="font-black text-xl text-slate-900 dark:text-slate-50">Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(tx.total_amount)}</p>
                                     </div>
 
                                     <div className="flex flex-col items-end">
@@ -703,7 +757,7 @@ const HistorySection: React.FC<{ transactions: any[], onUpdate: () => void, show
                                                 "px-2 py-0.5 rounded-md text-[10px] font-black uppercase",
                                                 tx.is_paid_full ? "text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10" : "text-rose-500 bg-rose-50 dark:bg-rose-500/10"
                                             )}>
-                                                {tx.is_paid_full ? '● LUNAS' : `● SISA: Rp ${new Intl.NumberFormat('id-ID').format(tx.remaining_balance)}`}
+                                                {tx.is_paid_full ? '● LUNAS' : `● SISA: Rp ${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(tx.remaining_balance)}`}
                                             </div>
                                         )}
                                     </div>
@@ -717,6 +771,20 @@ const HistorySection: React.FC<{ transactions: any[], onUpdate: () => void, show
                                                 Lunaskan
                                             </button>
                                         )}
+                                        <button
+                                            onClick={() => {
+                                                setEditingTx(tx);
+                                                setEditFormData({
+                                                    buyer_name: tx.buyer_name,
+                                                    payment_status: tx.payment_status,
+                                                    is_paid_full: !!tx.is_paid_full,
+                                                    remaining_balance: Number(tx.remaining_balance)
+                                                });
+                                            }}
+                                            className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-xl hover:bg-indigo-500 hover:text-white transition-all border border-slate-100 dark:border-slate-700"
+                                        >
+                                            <Edit2 className="w-5 h-5" />
+                                        </button>
                                         <button
                                             onClick={() => setSelectedTx(selectedTx === tx.id ? null : tx.id)}
                                             className={cn(
@@ -747,20 +815,20 @@ const HistorySection: React.FC<{ transactions: any[], onUpdate: () => void, show
                                             <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-indigo-100 dark:hover:border-indigo-900/30 transition-all">
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm">
-                                                        {item.product.image ? (
+                                                        {item.product && item.product.image ? (
                                                             <img src={item.product.image.startsWith('http') ? item.product.image : `${import.meta.env.VITE_API_SERVICE_KEPEGAWAIAN}/../storage/${item.product.image}`} className="w-full h-full object-cover" />
                                                         ) : (
                                                             <ImageIcon className="w-full h-full p-3 text-slate-300" />
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <p className="font-black text-sm text-slate-700 dark:text-slate-200">{item.product.name}</p>
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Oleh: {item.product.owner}</p>
+                                                        <p className="font-black text-sm text-slate-700 dark:text-slate-200">{item.product_name}</p>
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Oleh: {item.product_owner}</p>
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-xs font-black text-slate-400 mb-0.5">{item.quantity} x Rp {new Intl.NumberFormat('id-ID').format(item.price_at_sale)}</p>
-                                                    <p className="text-sm font-black text-indigo-600 dark:text-indigo-400">Rp {new Intl.NumberFormat('id-ID').format(item.quantity * item.price_at_sale)}</p>
+                                                    <p className="text-xs font-black text-slate-400 mb-0.5">{item.quantity} x Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(item.price_at_sale)}</p>
+                                                    <p className="text-sm font-black text-indigo-600 dark:text-indigo-400">Rp {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(item.quantity * item.price_at_sale)}</p>
                                                 </div>
                                             </div>
                                         ))}
@@ -771,99 +839,173 @@ const HistorySection: React.FC<{ transactions: any[], onUpdate: () => void, show
                     ))
                 )}
             </div>
+
+            {/* Edit Transaction Modal */}
+            {editingTx && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+                        <div className="p-8 border-b border-slate-100 dark:border-slate-800">
+                            <h3 className="text-xl font-black">Edit Transaksi</h3>
+                        </div>
+                        <div className="p-8 space-y-6">
+                            <div>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Nama Pembeli</label>
+                                <input
+                                    type="text"
+                                    className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                                    value={editFormData.buyer_name}
+                                    onChange={(e) => setEditFormData({ ...editFormData, buyer_name: e.target.value })}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Status</label>
+                                    <select
+                                        className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                                        value={editFormData.payment_status}
+                                        onChange={(e) => setEditFormData({ ...editFormData, payment_status: e.target.value as any })}
+                                    >
+                                        <option value="cash">Cash</option>
+                                        <option value="qris">QRIS</option>
+                                        <option value="utang">Utang</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Lunas?</label>
+                                    <select
+                                        className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                                        value={editFormData.is_paid_full ? '1' : '0'}
+                                        onChange={(e) => setEditFormData({ ...editFormData, is_paid_full: e.target.value === '1' })}
+                                    >
+                                        <option value="1">Ya</option>
+                                        <option value="0">Tidak</option>
+                                    </select>
+                                </div>
+                            </div>
+                            {!editFormData.is_paid_full && (
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Sisa Hutang</label>
+                                    <input
+                                        type="number"
+                                        className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                                        value={editFormData.remaining_balance}
+                                        onChange={(e) => setEditFormData({ ...editFormData, remaining_balance: Number(e.target.value) })}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-8 bg-slate-50 dark:bg-slate-800/50 flex gap-4">
+                            <button onClick={() => setEditingTx(null)} className="flex-1 py-4 font-black text-slate-400 hover:text-slate-600 transition-colors">Batal</button>
+                            <button onClick={handleEditSave} className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 transition-all">Simpan Perubahan</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
 const RecapSection: React.FC<{ recap: any }> = ({ recap }) => {
-    if (!recap) return <div>Loading...</div>;
+    if (!recap) return null;
+
+    const formatCurr = (v: any) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v || 0);
 
     return (
-        <div className="space-y-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-bold">Rekapitulasi</h2>
-                    <p className="text-slate-500">Performa penjualan bulan ini</p>
-                </div>
-                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-4 py-2 rounded-2xl border border-slate-200 dark:border-slate-800">
-                    <Calendar className="w-4 h-4 text-indigo-500" />
-                    <span className="font-bold text-sm">{dayjs().format('MMMM YYYY')}</span>
-                </div>
-            </div>
-
+        <div className="space-y-10 pb-20 animate-in fade-in duration-700">
+            {/* Header Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-8 rounded-[2rem] text-white shadow-xl shadow-indigo-500/20 relative overflow-hidden">
-                    <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
-                    <div className="relative z-10">
-                        <p className="text-indigo-100 text-sm font-bold uppercase tracking-widest mb-2">Total Pendapatan</p>
-                        <h3 className="text-3xl font-black mb-4">Rp {new Intl.NumberFormat('id-ID').format(recap.monthly.total_revenue || 0)}</h3>
-                        <div className="flex items-center gap-1 text-xs font-bold bg-white/20 w-fit px-2 py-1 rounded-lg">
-                            <ArrowUpRight className="w-3 h-3" />
-                            Target Tercapai
+                {[
+                    { label: 'Total Penjualan', value: `Rp ${formatCurr(recap.monthly.total_revenue)}`, icon: DollarSign, color: 'bg-indigo-600', sub: 'Target Bulan Ini' },
+                    { label: 'Total Transaksi', value: recap.monthly.total_transactions, icon: ShoppingCart, color: 'bg-emerald-600', sub: 'Transaksi Berhasil' },
+                    { label: 'Sisa Piutang', value: `Rp ${formatCurr(recap.monthly.total_debt)}`, icon: AlertCircle, color: 'bg-rose-600', sub: 'Perlu Ditagih' },
+                ].map((stat, i) => (
+                    <div key={i} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:shadow-xl transition-all duration-500">
+                        <div className={cn("absolute -right-4 -top-4 w-32 h-32 rounded-full opacity-5 group-hover:scale-150 transition-transform duration-700", stat.color)}></div>
+                        <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-lg", stat.color, "text-white")}>
+                            <stat.icon className="w-7 h-7" />
                         </div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{stat.label}</p>
+                        <p className="text-3xl font-black text-slate-900 dark:text-slate-50 mb-2">{stat.value}</p>
+                        <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                            {stat.sub}
+                        </p>
                     </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-[2rem] shadow-sm relative overflow-hidden">
-                    <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mb-2">Total Transaksi</p>
-                    <h3 className="text-3xl font-black mb-4">{recap.monthly.total_transactions || 0}</h3>
-                    <div className="flex items-center gap-2 text-slate-500">
-                        <div className="w-8 h-1 bg-indigo-500 rounded-full"></div>
-                        <span className="text-xs font-bold uppercase">Bulan Ini</span>
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-[2rem] shadow-sm relative overflow-hidden">
-                    <p className="text-red-400 text-sm font-bold uppercase tracking-widest mb-2">Total Piutang (Hutang)</p>
-                    <h3 className="text-3xl font-black mb-4 text-red-500">Rp {new Intl.NumberFormat('id-ID').format(recap.monthly.total_debt || 0)}</h3>
-                    <div className="flex items-center gap-1 text-xs font-bold text-red-500/80">
-                        <AlertCircle className="w-3 h-3" />
-                        Perlu Ditagih
-                    </div>
-                </div>
+                ))}
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm">
-                <div className="p-8 border-b border-slate-100 dark:border-slate-800">
-                    <h3 className="text-xl font-bold">Kinerja Pemilik Produk</h3>
-                    <p className="text-sm text-slate-500">Rekapitulasi berdasarkan kepemilikan barang</p>
-                </div>
-                <div className="p-8 overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] border-b border-slate-100 dark:border-slate-800">
-                                <th className="pb-4">Pemilik</th>
-                                <th className="pb-4">Item Terjual</th>
-                                <th className="pb-4">Total Penjualan</th>
-                                <th className="pb-4 text-right">Frekuensi Transaksi</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {recap.owners.map((owner: any, idx: number) => (
-                                <tr key={idx} className="group hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                                    <td className="py-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center font-bold text-indigo-600">
-                                                {owner.owner.charAt(0)}
-                                            </div>
-                                            <span className="font-bold text-slate-700 dark:text-slate-200">{owner.owner}</span>
-                                        </div>
-                                    </td>
-                                    <td className="py-6 font-medium">{owner.items_sold} Unit</td>
-                                    <td className="py-6">
-                                        <span className="font-black text-indigo-600 dark:text-indigo-400">
-                                            Rp {new Intl.NumberFormat('id-ID').format(owner.total_sales)}
-                                        </span>
-                                    </td>
-                                    <td className="py-6 text-right">
-                                        <span className="px-3 py-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full text-xs font-bold">
-                                            {owner.transaction_count} Kali
-                                        </span>
-                                    </td>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                {/* Owner Performance Table */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-xl transition-all">
+                    <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-xl font-black">Kinerja Pemilik</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Berdasarkan Item Terjual</p>
+                        </div>
+                        <TrendingUp className="w-6 h-6 text-indigo-500" />
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="bg-slate-50/50 dark:bg-slate-800/30">
+                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">Pemilik</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Terjual</th>
+                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Omzet</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {recap.owners.map((owner: any, i: number) => (
+                                    <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td className="px-8 py-5">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl flex items-center justify-center font-black text-indigo-600">
+                                                    {owner.owner.charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <p className="font-black text-sm text-slate-800 dark:text-slate-100">{owner.owner}</p>
+                                                    <p className="text-[10px] text-slate-400 font-bold">{owner.transaction_count} Transaksi</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-5 text-center font-black text-sm">{owner.items_sold} item</td>
+                                        <td className="px-8 py-5 text-right font-black text-indigo-600 dark:text-indigo-400">
+                                            Rp {formatCurr(owner.total_sales)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* Top Buyers List */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-xl transition-all">
+                    <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-xl font-black">Pembeli Terbanyak</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Pelanggan Setia</p>
+                        </div>
+                        <Users className="w-6 h-6 text-emerald-500" />
+                    </div>
+                    <div className="p-8 space-y-6">
+                        {recap.top_buyers.map((buyer: any, i: number) => (
+                            <div key={i} className="flex items-center justify-between p-5 bg-slate-50/50 dark:bg-slate-800/30 rounded-3xl border border-transparent hover:border-emerald-100 dark:hover:border-emerald-900/20 transition-all group">
+                                <div className="flex items-center gap-5">
+                                    <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center text-emerald-600 font-black shadow-sm group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                                        {i + 1}
+                                    </div>
+                                    <div>
+                                        <p className="font-black text-sm text-slate-800 dark:text-slate-100">{buyer.buyer_name}</p>
+                                        <p className="text-[10px] text-slate-400 font-bold">{buyer.transaction_count}x Transaksi</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Kontribusi</p>
+                                    <p className="font-black text-emerald-600 dark:text-emerald-400">Rp {formatCurr(buyer.total_spent)}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
@@ -874,16 +1016,10 @@ const RecapSection: React.FC<{ recap: any }> = ({ recap }) => {
 const SaleSkeleton = () => (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-            <div className="h-12 w-full bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
+            <div className="h-16 w-full bg-slate-200 dark:bg-slate-800 rounded-[2rem] animate-pulse" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {[1, 2, 3, 4, 5, 6].map(i => (
-                    <div key={i} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-                        <div className="aspect-square bg-slate-100 dark:bg-slate-800 animate-pulse" />
-                        <div className="p-3 space-y-2">
-                            <div className="h-4 w-3/4 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
-                            <div className="h-4 w-1/2 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
-                        </div>
-                    </div>
+                    <div key={i} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] overflow-hidden h-64 animate-pulse" />
                 ))}
             </div>
         </div>
@@ -893,13 +1029,7 @@ const SaleSkeleton = () => (
 
 const ProductSkeleton = () => (
     <div className="space-y-6">
-        <div className="flex justify-between items-center">
-            <div className="space-y-2">
-                <div className="h-8 w-48 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
-                <div className="h-4 w-64 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
-            </div>
-            <div className="h-12 w-32 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
-        </div>
+        <div className="flex justify-between items-center h-20 bg-slate-100/50 dark:bg-slate-800/50 rounded-[2rem] px-8 animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map(i => (
                 <div key={i} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden h-80 animate-pulse" />
@@ -909,25 +1039,24 @@ const ProductSkeleton = () => (
 );
 
 const HistorySkeleton = () => (
-    <div className="space-y-4">
+    <div className="space-y-6">
         {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl animate-pulse" />
+            <div key={i} className="h-28 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] animate-pulse" />
         ))}
     </div>
 );
 
 const RecapSkeleton = () => (
-    <div className="space-y-8">
-        <div className="flex justify-between items-center">
-            <div className="h-8 w-48 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
-            <div className="h-10 w-32 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
-        </div>
+    <div className="space-y-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[1, 2, 3].map(i => (
-                <div key={i} className="h-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] animate-pulse" />
+                <div key={i} className="h-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] animate-pulse" />
             ))}
         </div>
-        <div className="h-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] animate-pulse" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <div className="h-[400px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] animate-pulse" />
+            <div className="h-[400px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] animate-pulse" />
+        </div>
     </div>
 );
 
