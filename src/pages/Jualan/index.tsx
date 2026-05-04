@@ -1,30 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    LayoutDashboard, 
-    Package, 
-    ShoppingCart, 
-    History, 
-    Plus, 
-    Search, 
+import {
+    LayoutDashboard,
+    Package,
+    ShoppingCart,
+    History,
+    Plus,
+    Search,
     ChevronRight,
-    Filter,
     ArrowUpRight,
-    ArrowDownRight,
     User,
     DollarSign,
     CreditCard,
     AlertCircle,
-    CheckCircle2,
     Calendar,
     Image as ImageIcon
 } from 'lucide-react';
-import { getProducts, getTransactions, getRecap, createProduct, createTransaction, updateTransactionStatus } from '@/services/jualanService';
+import { getProducts, getTransactions, getRecap, createProduct, createTransaction, updateTransactionStatus, updateProduct } from '@/services/jualanService';
 import dayjs from 'dayjs';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+    return twMerge(clsx(inputs));
 }
 
 const JualanApp: React.FC = () => {
@@ -70,7 +67,7 @@ const JualanApp: React.FC = () => {
                             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Pengelolaan Jualan & Transaksi</p>
                         </div>
                     </div>
-                    
+
                     <div className="hidden md:flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                         {[
                             { id: 'sale', icon: ShoppingCart, label: 'Jual' },
@@ -83,8 +80,8 @@ const JualanApp: React.FC = () => {
                                 onClick={() => setActiveTab(tab.id as any)}
                                 className={cn(
                                     "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                                    activeTab === tab.id 
-                                        ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400" 
+                                    activeTab === tab.id
+                                        ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400"
                                         : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                                 )}
                             >
@@ -151,8 +148,8 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void 
     const [amountPaid, setAmountPaid] = useState<number>(0);
     const [searchQuery, setSearchQuery] = useState('');
 
-    const filteredProducts = products.filter(p => 
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const filteredProducts = products.filter(p =>
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.owner.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -184,7 +181,7 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void 
 
     const handleSubmit = async () => {
         if (!buyerName || cart.length === 0) return alert('Nama pembeli dan produk harus diisi');
-        
+
         try {
             await createTransaction({
                 buyer_name: buyerName,
@@ -211,8 +208,8 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void 
             <div className="lg:col-span-2 space-y-6">
                 <div className="relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                    <input 
-                        type="text" 
+                    <input
+                        type="text"
                         placeholder="Cari produk atau pemilik..."
                         className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
                         value={searchQuery}
@@ -222,16 +219,16 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void 
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {filteredProducts.map(product => (
-                        <div 
+                        <div
                             key={product.id}
                             onClick={() => addToCart(product)}
                             className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-400 transition-all hover:shadow-xl hover:-translate-y-1"
                         >
                             <div className="aspect-square bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
                                 {product.image ? (
-                                    <img 
-                                        src={product.image.startsWith('http') ? product.image : `${import.meta.env.VITE_API_SERVICE_KEPEGAWAIAN}/../storage/${product.image}`} 
-                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                                    <img
+                                        src={product.image.startsWith('http') ? product.image : `${import.meta.env.VITE_API_SERVICE_KEPEGAWAIAN}/../storage/${product.image}`}
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
@@ -293,8 +290,8 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void 
                     <div className="p-6 bg-slate-50 dark:bg-slate-800/50 space-y-4">
                         <div>
                             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Nama Pembeli</label>
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
                                 placeholder="Masukkan nama..."
                                 value={buyerName}
@@ -315,8 +312,8 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void 
                                         onClick={() => setPaymentStatus(m.id as any)}
                                         className={cn(
                                             "flex flex-col items-center gap-1 py-2 border rounded-xl transition-all",
-                                            paymentStatus === m.id 
-                                                ? "bg-indigo-50 border-indigo-500 text-indigo-600 dark:bg-indigo-500/10" 
+                                            paymentStatus === m.id
+                                                ? "bg-indigo-50 border-indigo-500 text-indigo-600 dark:bg-indigo-500/10"
                                                 : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500"
                                         )}
                                     >
@@ -330,8 +327,8 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void 
                         {paymentStatus === 'utang' && (
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2">
-                                    <input 
-                                        type="checkbox" 
+                                    <input
+                                        type="checkbox"
                                         id="paidFull"
                                         checked={isPaidFull}
                                         onChange={(e) => setIsPaidFull(e.target.checked)}
@@ -342,8 +339,8 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void 
                                 {!isPaidFull && (
                                     <div>
                                         <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Jumlah Dibayar</label>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
                                             value={amountPaid}
                                             onChange={(e) => setAmountPaid(Number(e.target.value))}
@@ -359,7 +356,7 @@ const SaleSection: React.FC<{ products: any[], onTransactionSuccess: () => void 
                                 <span className="text-slate-500 font-medium">Total</span>
                                 <span className="text-xl font-bold">Rp {new Intl.NumberFormat('id-ID').format(total)}</span>
                             </div>
-                            <button 
+                            <button
                                 onClick={handleSubmit}
                                 disabled={cart.length === 0}
                                 className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-2xl font-bold text-lg shadow-lg shadow-indigo-500/30 transition-all active:scale-[0.98]"
@@ -415,7 +412,7 @@ const ProductSection: React.FC<{ products: any[], onUpdate: () => void }> = ({ p
                     <h2 className="text-2xl font-bold">Daftar Produk</h2>
                     <p className="text-slate-500">Kelola katalog produk jualan Anda</p>
                 </div>
-                <button 
+                <button
                     onClick={() => { setEditingProduct(null); setFormData({ name: '', price: '', owner: '', image: null }); setShowModal(true); }}
                     className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 transition-all"
                 >
@@ -449,7 +446,7 @@ const ProductSection: React.FC<{ products: any[], onUpdate: () => void }> = ({ p
                                     <p className="text-indigo-600 font-bold">Rp {new Intl.NumberFormat('id-ID').format(product.price)}</p>
                                 </div>
                             </div>
-                            <button 
+                            <button
                                 onClick={() => handleEdit(product)}
                                 className="w-full py-2 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 rounded-xl text-sm font-bold transition-all"
                             >
@@ -470,7 +467,7 @@ const ProductSection: React.FC<{ products: any[], onUpdate: () => void }> = ({ p
                         <form onSubmit={handleSave} className="p-6 space-y-4">
                             <div>
                                 <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">Nama Produk</label>
-                                <input 
+                                <input
                                     type="text" required
                                     className="w-full px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800"
                                     value={formData.name}
@@ -479,7 +476,7 @@ const ProductSection: React.FC<{ products: any[], onUpdate: () => void }> = ({ p
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">Harga</label>
-                                <input 
+                                <input
                                     type="number" required
                                     className="w-full px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800"
                                     value={formData.price}
@@ -488,7 +485,7 @@ const ProductSection: React.FC<{ products: any[], onUpdate: () => void }> = ({ p
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">Pemilik</label>
-                                <input 
+                                <input
                                     type="text" required
                                     className="w-full px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800"
                                     value={formData.owner}
@@ -497,8 +494,8 @@ const ProductSection: React.FC<{ products: any[], onUpdate: () => void }> = ({ p
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">Gambar Produk</label>
-                                <input 
-                                    type="file" 
+                                <input
+                                    type="file"
                                     accept="image/*"
                                     className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
                                     onChange={e => setFormData({ ...formData, image: e.target.files?.[0] || null })}
@@ -566,8 +563,8 @@ const HistorySection: React.FC<{ transactions: any[], onUpdate: () => void }> = 
                                     <span className={cn(
                                         "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-2",
                                         tx.payment_status === 'cash' ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400" :
-                                        tx.payment_status === 'qris' ? "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400" :
-                                        "bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400"
+                                            tx.payment_status === 'qris' ? "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400" :
+                                                "bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400"
                                     )}>
                                         {tx.payment_status}
                                     </span>
@@ -583,14 +580,14 @@ const HistorySection: React.FC<{ transactions: any[], onUpdate: () => void }> = 
 
                                 <div className="flex gap-2">
                                     {tx.payment_status === 'utang' && !tx.is_paid_full && (
-                                        <button 
+                                        <button
                                             onClick={() => handleStatusUpdate(tx, 'utang', true)}
                                             className="px-4 py-2 bg-green-500 text-white rounded-xl text-xs font-bold hover:bg-green-600 transition-all"
                                         >
                                             Lunaskan
                                         </button>
                                     )}
-                                    <button 
+                                    <button
                                         onClick={() => setSelectedTx(selectedTx === tx.id ? null : tx.id)}
                                         className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 transition-all"
                                     >
